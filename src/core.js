@@ -74,16 +74,56 @@ function curatedExtract(text, patterns, limit = 6, strictDate = false) {
   return out.sort((a, b) => b.score - a.score).slice(0, limit).map(x => x.line);
 }
 
+function monthToNum(token) {
+  const t = token.toLowerCase().slice(0, 3);
+  const m = { jan:1, feb:2, mar:3, apr:4, may:5, jun:6, jul:7, aug:8, sep:9, oct:10, nov:11, dec:12 };
+  return m[t] || null;
+}
+
+function parseDateLine(line) {
+  const l = cleanup(line);
+  let m = l.match(/^(\d{1,2})\s+([A-Za-z]{3,9})$/);
+  if (m) return { day: Number(m[1]), month: monthToNum(m[2]) };
+  m = l.match(/^([A-Za-z]{3,9})\s+(\d{1,2})$/);
+  if (m) return { day: Number(m[2]), month: monthToNum(m[1]) };
+  return null;
+}
+
+function parseMarkdownDatedObservances(text, targetDay, targetMonth) {
+  const lines = text.split('\n');
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i] || '';
+    if (!raw.includes('](')) continue;
+    const line = cleanup(raw);
+    if (!/(International|World|Day|Observance|Tourism|Language|Justice)/i.test(line)) continue;
+
+    const offsets = [1,2,3,4,-1,-2,-3,-4];
+    const dated = offsets
+      .map(off => ({ off, d: parseDateLine(lines[i + off] || '') }))
+      .filter(x => x.d && x.d.month)
+      .sort((a,b) => Math.abs(a.off) - Math.abs(b.off));
+    const d = dated[0]?.d;
+    if (!d || !d.month) continue;
+    if (d.day === targetDay && d.month === targetMonth) {
+      out.push(line.replace(/\s*\([^)]*\)\s*$/,'').trim());
+    }
+  }
+  return [...new Set(out)].slice(0, 8);
+}
+
 async function source1UN(dateIso) {
-  const { day, monthName } = mdDate(dateIso);
+  const d = new Date(`${dateIso}T00:00:00Z`);
+  const day = d.getUTCDate();
+  const month = d.getUTCMonth() + 1;
   const url = 'https://r.jina.ai/http://www.un.org/en/observances/list-days-weeks';
   const text = await fetchText(url);
-  const findings = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 6, true);
+  const parsed = parseMarkdownDatedObservances(text, day, month);
   return {
     source: '1',
     title: 'UN International Days',
     url,
-    findings: findings.length ? findings : ['No exact UN observance match found for this date in quick index scan.']
+    findings: parsed.length ? parsed : ['No UN observance found for this exact date in source list.']
   };
 }
 
@@ -106,7 +146,9 @@ async function source2GermanyOfficial(dateIso, state) {
 }
 
 async function source3Institutions(dateIso) {
-  const { day, monthName } = mdDate(dateIso);
+  const d = new Date(`${dateIso}T00:00:00Z`);
+  const day = d.getUTCDate();
+  const month = d.getUTCMonth() + 1;
   const urls = [
     'https://r.jina.ai/http://www.who.int/campaigns/world-health-days',
     'https://r.jina.ai/http://www.unesco.org/en/days',
@@ -116,7 +158,8 @@ async function source3Institutions(dateIso) {
   for (const url of urls) {
     try {
       const text = await fetchText(url);
-      findings.push(...curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 2, true));
+      const exact = parseMarkdownDatedObservances(text, day, month);
+      findings.push(...exact);
     } catch {
       // ignore single-source errors here, final fallback below
     }
@@ -125,7 +168,7 @@ async function source3Institutions(dateIso) {
     source: '3',
     title: 'WHO/UNESCO/EU institution days',
     url: urls,
-    findings: findings.length ? findings.slice(0, 8) : ['No exact WHO/UNESCO/EU date match found in quick scan.']
+    findings: findings.length ? [...new Set(findings)].slice(0, 8) : ['No WHO/UNESCO/EU observance found for this exact date in current source pages.']
   };
 }
 

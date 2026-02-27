@@ -25,7 +25,7 @@
       "title": "UN International Days",
       "url": "https://r.jina.ai/http://www.un.org/en/observances/list-days-weeks",
       "findings": [
-        "No exact UN observance match found for this date in quick index scan."
+        "No UN observance found for this exact date in source list."
       ]
     },
     {
@@ -48,7 +48,7 @@
         "https://r.jina.ai/http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en"
       ],
       "findings": [
-        "No exact WHO/UNESCO/EU date match found in quick scan."
+        "No WHO/UNESCO/EU observance found for this exact date in current source pages."
       ]
     },
     {
