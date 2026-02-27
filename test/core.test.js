@@ -48,6 +48,13 @@ describe('runLookup', () => {
         };
       }
 
+      if (u.includes('coe.int/en/web/portal/international-and-european-days')) {
+        return {
+          ok: true,
+          text: async () => '* [3 May - World Press Freedom Day](https://x)\n* [17 May - International Day against Homophobia](https://x)'
+        };
+      }
+
       return {
         ok: true,
         text: async () => 'International Day February 28\nWorld Day\nTag des Tests'
@@ -85,5 +92,10 @@ describe('runLookup', () => {
   it('falls back to fixed UNESCO day mapping for 4 March', async () => {
     const out = await runLookup({ date: '2026-03-04', sources: ['unesco_days'], state: 'BY' });
     expect(out.results[0].findings[0]).toContain('World Engineering Day for Sustainable Development');
+  });
+
+  it('extracts EU day from CoE page for 17 May', async () => {
+    const out = await runLookup({ date: '2026-05-17', sources: ['eu_days'], state: 'BY' });
+    expect(out.results[0].findings[0]).toContain('International Day against Homophobia');
   });
 });

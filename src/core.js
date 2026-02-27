@@ -213,6 +213,21 @@ function parseDateLine(line) {
   return null;
 }
 
+function parseInlineDatedLinks(text, targetDay, targetMonth) {
+  const lines = text.split('\n');
+  const out = [];
+  for (const line of lines) {
+    const clean = cleanup(line);
+    const m = clean.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s*[-–:]\s*(.+)$/);
+    if (!m) continue;
+    const d = Number(m[1]);
+    const mon = monthToNum(m[2]);
+    if (!mon || d !== targetDay || mon !== targetMonth) continue;
+    out.push(m[3].trim());
+  }
+  return [...new Set(out)].slice(0, 8);
+}
+
 function parseMarkdownDatedObservances(text, targetDay, targetMonth) {
   const lines = text.split('\n');
   const out = [];
@@ -318,9 +333,10 @@ async function sourceEuDays(dateIso) {
   const d = new Date(`${dateIso}T00:00:00Z`);
   const day = d.getUTCDate();
   const month = d.getUTCMonth() + 1;
-  const url = 'https://r.jina.ai/https://european-union.europa.eu/principles-countries-history/europe-day_en';
+  const url = 'https://r.jina.ai/https://www.coe.int/en/web/portal/international-and-european-days';
   const text = await fetchText(url);
-  const findings = parseMarkdownDatedObservances(text, day, month);
+  const inline = parseInlineDatedLinks(text, day, month);
+  const findings = inline.length ? inline : parseMarkdownDatedObservances(text, day, month);
   return {
     source: 'eu_days',
     title: 'EU institution days',
