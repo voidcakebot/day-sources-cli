@@ -2,13 +2,15 @@
 
 CLI + Pages demo to look up day-related information from ranked sources.
 
-## Sources
-1. UN International Days
-2. German official/public holiday data (state-specific)
-3. WHO / UNESCO / EU institution days
-4. German name days
-5. Aggregator (timeanddate)
-6. Curiosity days (non-authoritative)
+## Sources (string keys)
+- `un` → UN International Days
+- `de_holidays` → German official/public holiday data (state-specific)
+- `who_days` → WHO institution days
+- `unesco_days` → UNESCO institution days
+- `eu_days` → EU institution days
+- `de_namedays` → German name days
+- `timeanddate` → Aggregator (timeanddate)
+- `curiosity_days` → Curiosity days (non-authoritative)
 
 ## Install
 ```bash
@@ -17,14 +19,14 @@ npm install
 
 ## Run examples
 ```bash
-# only sources 1 and 3
-node src/cli.js --date 2026-02-28 --sources 1,3
+# only UN + WHO + UNESCO
+node src/cli.js --date 2026-02-28 --sources un,who_days,unesco_days
 
 # all sources as JSON
 node src/cli.js --date 2026-02-28 --sources all --json
 
 # Germany mode: state public holiday + name days
-node src/cli.js --date 2026-02-28 --sources 1,3 --germany-mode --state BY
+node src/cli.js --date 2026-02-28 --sources un,de_holidays,de_namedays --germany-mode --state BY
 ```
 
 ## Tests
@@ -33,4 +35,4 @@ npm test
 ```
 
 ## Pages
-`npm run build:data` now generates `docs/data-latest.json` with **all sources** + Germany mode enabled.
+`npm run build:data` generates `docs/data-latest.json` with **all string-key sources** + Germany mode enabled.

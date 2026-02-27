@@ -5,7 +5,7 @@ describe('parseArgs', () => {
   it('parses all-source mode and germany mode', () => {
     const a = parseArgs(['--date', '2026-02-28', '--sources', 'all', '--germany-mode', '--state', 'NW', '--json']);
     expect(a.date).toBe('2026-02-28');
-    expect(a.sources).toEqual(['1', '2', '3', '4', '5', '6']);
+    expect(a.sources).toEqual(['un','de_holidays','who_days','unesco_days','eu_days','de_namedays','timeanddate','curiosity_days']);
     expect(a.germanyMode).toBe(true);
     expect(a.state).toBe('NW');
     expect(a.json).toBe(true);
@@ -46,14 +46,14 @@ describe('runLookup', () => {
     global.fetch = realFetch;
   });
 
-  it('returns sources 1 and 3 only when requested', async () => {
-    const out = await runLookup({ date: '2026-02-28', sources: ['1', '3'], state: 'BY', germanyMode: false });
+  it('returns selected string sources only when requested', async () => {
+    const out = await runLookup({ date: '2026-02-28', sources: ['un', 'who_days'], state: 'BY', germanyMode: false });
     expect(out.results.length).toBe(2);
-    expect(out.results.map(r => r.source)).toEqual(['1', '3']);
+    expect(out.results.map(r => r.source)).toEqual(['un', 'who_days']);
   });
 
   it('builds germany mode payload', async () => {
-    const out = await runLookup({ date: '2026-02-28', sources: ['1'], state: 'BY', germanyMode: true });
+    const out = await runLookup({ date: '2026-02-28', sources: ['un', 'de_holidays', 'de_namedays'], state: 'BY', germanyMode: true });
     expect(out.germanyMode).toBe(true);
     expect(out.germany.publicHolidays[0]).toContain('Test Holiday');
     expect(out.germany.nameDays[0]).toContain('Roman');

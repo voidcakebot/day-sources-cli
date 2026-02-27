@@ -3,11 +3,21 @@ const MONTH_NAMES = [
 ];
 
 const DE_STATES = ['BW','BY','BE','BB','HB','HH','HE','MV','NI','NW','RP','SL','SN','ST','SH','TH'];
+const ALL_SOURCE_KEYS = [
+  'un',
+  'de_holidays',
+  'who_days',
+  'unesco_days',
+  'eu_days',
+  'de_namedays',
+  'timeanddate',
+  'curiosity_days'
+];
 
 export function parseArgs(argv) {
   const args = {
     date: new Date().toISOString().slice(0, 10),
-    sources: ['1', '3'],
+    sources: ['un', 'who_days', 'unesco_days', 'eu_days'],
     json: false,
     country: 'DE',
     state: 'BY',
@@ -19,7 +29,7 @@ export function parseArgs(argv) {
     if (a === '--date') args.date = argv[++i];
     else if (a === '--sources') {
       const raw = String(argv[++i]);
-      args.sources = raw === 'all' ? ['1','2','3','4','5','6'] : raw.split(',').map(s => s.trim()).filter(Boolean);
+      args.sources = raw === 'all' ? [...ALL_SOURCE_KEYS] : raw.split(',').map(s => s.trim()).filter(Boolean);
     } else if (a === '--json') args.json = true;
     else if (a === '--country') args.country = String(argv[++i]).toUpperCase();
     else if (a === '--state') args.state = String(argv[++i]).toUpperCase();
@@ -120,7 +130,7 @@ async function source1UN(dateIso) {
   const text = await fetchText(url);
   const parsed = parseMarkdownDatedObservances(text, day, month);
   return {
-    source: '1',
+    source: 'un',
     title: 'UN International Days',
     url,
     findings: parsed.length ? parsed : ['No UN observance found for this exact date in source list.']
@@ -138,37 +148,55 @@ async function source2GermanyOfficial(dateIso, state) {
     .map(([k]) => `${k} (${state})`);
 
   return {
-    source: '2',
+    source: 'de_holidays',
     title: 'German official/public holiday data (state-specific)',
     url: [apiUrl, 'https://www.gesetze-im-internet.de/'],
     findings: hits.length ? hits : ['No public holiday on this date for selected state.']
   };
 }
 
-async function source3Institutions(dateIso) {
+async function sourceWhoDays(dateIso) {
   const d = new Date(`${dateIso}T00:00:00Z`);
   const day = d.getUTCDate();
   const month = d.getUTCMonth() + 1;
-  const urls = [
-    'https://r.jina.ai/http://www.who.int/campaigns/world-health-days',
-    'https://r.jina.ai/http://www.unesco.org/en/days',
-    'https://r.jina.ai/http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en'
-  ];
-  const findings = [];
-  for (const url of urls) {
-    try {
-      const text = await fetchText(url);
-      const exact = parseMarkdownDatedObservances(text, day, month);
-      findings.push(...exact);
-    } catch {
-      // ignore single-source errors here, final fallback below
-    }
-  }
+  const url = 'https://r.jina.ai/http://www.who.int/campaigns/world-health-days';
+  const text = await fetchText(url);
+  const findings = parseMarkdownDatedObservances(text, day, month);
   return {
-    source: '3',
-    title: 'WHO/UNESCO/EU institution days',
-    url: urls,
-    findings: findings.length ? [...new Set(findings)].slice(0, 8) : ['No WHO/UNESCO/EU observance found for this exact date in current source pages.']
+    source: 'who_days',
+    title: 'WHO institution days',
+    url,
+    findings: findings.length ? findings : ['No WHO observance found for this exact date in current source page.']
+  };
+}
+
+async function sourceUnescoDays(dateIso) {
+  const d = new Date(`${dateIso}T00:00:00Z`);
+  const day = d.getUTCDate();
+  const month = d.getUTCMonth() + 1;
+  const url = 'https://r.jina.ai/http://www.unesco.org/en/days';
+  const text = await fetchText(url);
+  const findings = parseMarkdownDatedObservances(text, day, month);
+  return {
+    source: 'unesco_days',
+    title: 'UNESCO institution days',
+    url,
+    findings: findings.length ? findings : ['No UNESCO observance found for this exact date in current source page.']
+  };
+}
+
+async function sourceEuDays(dateIso) {
+  const d = new Date(`${dateIso}T00:00:00Z`);
+  const day = d.getUTCDate();
+  const month = d.getUTCMonth() + 1;
+  const url = 'https://r.jina.ai/http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en';
+  const text = await fetchText(url);
+  const findings = parseMarkdownDatedObservances(text, day, month);
+  return {
+    source: 'eu_days',
+    title: 'EU institution days',
+    url,
+    findings: findings.length ? findings : ['No EU observance found for this exact date in current source page.']
   };
 }
 
@@ -184,7 +212,7 @@ async function source4NameDays(dateIso) {
     .filter(Boolean);
 
   return {
-    source: '4',
+    source: 'de_namedays',
     title: 'German name days',
     url,
     findings: names.length ? [`Name days: ${names.join(', ')}`] : ['No German name-day names found on source page.']
@@ -197,7 +225,7 @@ async function source5Aggregator(dateIso) {
   const text = await fetchText(url);
   const findings = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 6, true);
   return {
-    source: '5',
+    source: 'timeanddate',
     title: 'Aggregator (timeanddate)',
     url,
     findings: findings.length ? findings : ['No exact aggregator date match found.']
@@ -215,7 +243,7 @@ async function source6Curiosity(dateIso) {
     .filter(x => !/404|seite nicht gefunden|image/i.test(x))
     .filter(x => !/^\d{1,2}\.\s*[A-Za-zäöüÄÖÜ]+:?$/i.test(x));
   return {
-    source: '6',
+    source: 'curiosity_days',
     title: 'Curiosity days (non-authoritative)',
     url,
     findings: findings.length ? findings : ['No curiosity-day entry extracted for this date.']
@@ -234,20 +262,22 @@ export async function runLookup({ date, sources, state = 'BY', germanyMode = fal
 
   const tasks = [];
 
-  if (sources.includes('1')) tasks.push(safe('1', 'UN International Days', () => source1UN(date)));
-  if (sources.includes('2')) tasks.push(safe('2', 'German official/public holiday data (state-specific)', () => source2GermanyOfficial(date, normalizedState)));
-  if (sources.includes('3')) tasks.push(safe('3', 'WHO/UNESCO/EU institution days', () => source3Institutions(date)));
-  if (sources.includes('4')) tasks.push(safe('4', 'German name days', () => source4NameDays(date)));
-  if (sources.includes('5')) tasks.push(safe('5', 'Aggregator (timeanddate)', () => source5Aggregator(date)));
-  if (sources.includes('6')) tasks.push(safe('6', 'Curiosity days (non-authoritative)', () => source6Curiosity(date)));
+  if (sources.includes('un')) tasks.push(safe('un', 'UN International Days', () => source1UN(date)));
+  if (sources.includes('de_holidays')) tasks.push(safe('de_holidays', 'German official/public holiday data (state-specific)', () => source2GermanyOfficial(date, normalizedState)));
+  if (sources.includes('who_days')) tasks.push(safe('who_days', 'WHO institution days', () => sourceWhoDays(date)));
+  if (sources.includes('unesco_days')) tasks.push(safe('unesco_days', 'UNESCO institution days', () => sourceUnescoDays(date)));
+  if (sources.includes('eu_days')) tasks.push(safe('eu_days', 'EU institution days', () => sourceEuDays(date)));
+  if (sources.includes('de_namedays')) tasks.push(safe('de_namedays', 'German name days', () => source4NameDays(date)));
+  if (sources.includes('timeanddate')) tasks.push(safe('timeanddate', 'Aggregator (timeanddate)', () => source5Aggregator(date)));
+  if (sources.includes('curiosity_days')) tasks.push(safe('curiosity_days', 'Curiosity days (non-authoritative)', () => source6Curiosity(date)));
 
   const results = await Promise.all(tasks);
 
   let germany = null;
   if (germanyMode) {
     const byId = new Map(results.map(r => [r.source, r]));
-    const holidays = byId.get('2') || await safe('2', 'German official/public holiday data (state-specific)', () => source2GermanyOfficial(date, normalizedState));
-    const names = byId.get('4') || await safe('4', 'German name days', () => source4NameDays(date));
+    const holidays = byId.get('de_holidays') || await safe('de_holidays', 'German official/public holiday data (state-specific)', () => source2GermanyOfficial(date, normalizedState));
+    const names = byId.get('de_namedays') || await safe('de_namedays', 'German name days', () => source4NameDays(date));
     germany = {
       state: normalizedState,
       publicHolidays: holidays.findings,
