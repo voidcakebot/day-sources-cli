@@ -21,7 +21,6 @@ export function parseArgs(argv) {
     json: false,
     country: 'DE',
     state: 'BY',
-    germanyMode: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -33,7 +32,6 @@ export function parseArgs(argv) {
     } else if (a === '--json') args.json = true;
     else if (a === '--country') args.country = String(argv[++i]).toUpperCase();
     else if (a === '--state') args.state = String(argv[++i]).toUpperCase();
-    else if (a === '--germany-mode') args.germanyMode = true;
   }
 
   return args;
@@ -250,7 +248,7 @@ async function source6Curiosity(dateIso) {
   };
 }
 
-export async function runLookup({ date, sources, state = 'BY', germanyMode = false }) {
+export async function runLookup({ date, sources, state = 'BY' }) {
   const normalizedState = DE_STATES.includes(state) ? state : 'BY';
   const safe = async (id, title, fn) => {
     try {
@@ -273,19 +271,7 @@ export async function runLookup({ date, sources, state = 'BY', germanyMode = fal
 
   const results = await Promise.all(tasks);
 
-  let germany = null;
-  if (germanyMode) {
-    const byId = new Map(results.map(r => [r.source, r]));
-    const holidays = byId.get('de_holidays') || await safe('de_holidays', 'German official/public holiday data (state-specific)', () => source2GermanyOfficial(date, normalizedState));
-    const names = byId.get('de_namedays') || await safe('de_namedays', 'German name days', () => source4NameDays(date));
-    germany = {
-      state: normalizedState,
-      publicHolidays: holidays.findings,
-      nameDays: names.findings,
-    };
-  }
-
-  return { date, requestedSources: sources, state: normalizedState, germanyMode, germany, results };
+  return { date, requestedSources: sources, state: normalizedState, results };
 }
 
 export function formatHuman(report) {
@@ -295,13 +281,6 @@ export function formatHuman(report) {
     `State: ${report.state}`,
     ''
   ];
-
-  if (report.germanyMode && report.germany) {
-    chunks.push('Germany mode');
-    for (const h of report.germany.publicHolidays) chunks.push(`  - Holiday: ${h}`);
-    for (const n of report.germany.nameDays) chunks.push(`  - Nameday: ${n}`);
-    chunks.push('');
-  }
 
   for (const r of report.results) {
     chunks.push(`[${r.source}] ${r.title}`);

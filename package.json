@@ -9,7 +9,7 @@
   "scripts": {
     "test": "vitest run",
     "start": "node src/cli.js",
-    "build:data": "node src/cli.js --date $(date +%F) --sources all --germany-mode --state BY --json > docs/data-latest.json"
+    "build:data": "node src/cli.js --date $(date +%F) --sources all --state BY --json > docs/data-latest.json"
   },
   "devDependencies": {
     "vitest": "^2.1.8"

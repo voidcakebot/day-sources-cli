@@ -25,8 +25,8 @@ node src/cli.js --date 2026-02-28 --sources un,who_days,unesco_days
 # all sources as JSON
 node src/cli.js --date 2026-02-28 --sources all --json
 
-# Germany mode: state public holiday + name days
-node src/cli.js --date 2026-02-28 --sources un,de_holidays,de_namedays --germany-mode --state BY
+# State filter for DE holidays
+node src/cli.js --date 2026-02-28 --sources un,de_holidays,de_namedays --state BY
 ```
 
 ## Tests
@@ -35,4 +35,4 @@ npm test
 ```
 
 ## Pages
-`npm run build:data` generates `docs/data-latest.json` with **all string-key sources** + Germany mode enabled.
+`npm run build:data` generates `docs/data-latest.json` with **all string-key sources** (state still supported via `--state`).

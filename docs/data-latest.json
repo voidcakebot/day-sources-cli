@@ -1,27 +1,19 @@
 {
   "date": "2026-02-27",
   "requestedSources": [
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6"
+    "un",
+    "de_holidays",
+    "who_days",
+    "unesco_days",
+    "eu_days",
+    "de_namedays",
+    "timeanddate",
+    "curiosity_days"
   ],
   "state": "BY",
-  "germanyMode": true,
-  "germany": {
-    "state": "BY",
-    "publicHolidays": [
-      "No public holiday on this date for selected state."
-    ],
-    "nameDays": [
-      "Name days: Gabriel, Marko, Baldur"
-    ]
-  },
   "results": [
     {
-      "source": "1",
+      "source": "un",
       "title": "UN International Days",
       "url": "https://r.jina.ai/http://www.un.org/en/observances/list-days-weeks",
       "findings": [
@@ -29,7 +21,7 @@
       ]
     },
     {
-      "source": "2",
+      "source": "de_holidays",
       "title": "German official/public holiday data (state-specific)",
       "url": [
         "https://feiertage-api.de/api/?jahr=2026&nur_land=BY",
@@ -40,19 +32,31 @@
       ]
     },
     {
-      "source": "3",
-      "title": "WHO/UNESCO/EU institution days",
-      "url": [
-        "https://r.jina.ai/http://www.who.int/campaigns/world-health-days",
-        "https://r.jina.ai/http://www.unesco.org/en/days",
-        "https://r.jina.ai/http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en"
-      ],
+      "source": "who_days",
+      "title": "WHO institution days",
+      "url": "https://r.jina.ai/http://www.who.int/campaigns/world-health-days",
       "findings": [
-        "No WHO/UNESCO/EU observance found for this exact date in current source pages."
+        "No WHO observance found for this exact date in current source page."
       ]
     },
     {
-      "source": "4",
+      "source": "unesco_days",
+      "title": "UNESCO institution days",
+      "url": "https://r.jina.ai/http://www.unesco.org/en/days",
+      "findings": [
+        "No UNESCO observance found for this exact date in current source page."
+      ]
+    },
+    {
+      "source": "eu_days",
+      "title": "EU institution days",
+      "url": "https://r.jina.ai/http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en",
+      "findings": [
+        "No EU observance found for this exact date in current source page."
+      ]
+    },
+    {
+      "source": "de_namedays",
       "title": "German name days",
       "url": "https://www.namedaycalendar.com/germany/february/27",
       "findings": [
@@ -60,7 +64,7 @@
       ]
     },
     {
-      "source": "5",
+      "source": "timeanddate",
       "title": "Aggregator (timeanddate)",
       "url": "https://www.timeanddate.com/holidays/germany/?year=2026",
       "findings": [
@@ -68,7 +72,7 @@
       ]
     },
     {
-      "source": "6",
+      "source": "curiosity_days",
       "title": "Curiosity days (non-authoritative)",
       "url": "https://r.jina.ai/http://www.kuriose-feiertage.de/kalender/februar/27/",
       "findings": [
