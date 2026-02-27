@@ -34,6 +34,20 @@ describe('runLookup', () => {
         };
       }
 
+      if (u.includes('un.org/en/observances/list-days-weeks')) {
+        return {
+          ok: true,
+          text: async () => '[World Wildlife Day](https://example)\n\n03 Mar\n\n[International Day for X](https://example)\n\n05 Mar'
+        };
+      }
+
+      if (u.includes('kuriose-feiertage.de/kalender/maerz/3/')) {
+        return {
+          ok: true,
+          text: async () => 'März\n\n2. März:\n* [Tag A](https://x)\n\n3. März:\n* [Curiosity One](https://x)\n* [Curiosity Two](https://x)\n\n4. März:\n* [Tag B](https://x)'
+        };
+      }
+
       return {
         ok: true,
         text: async () => 'International Day February 28\nWorld Day\nTag des Tests'
@@ -56,5 +70,15 @@ describe('runLookup', () => {
     const byId = Object.fromEntries(out.results.map(r => [r.source, r]));
     expect(byId.de_holidays.findings[0]).toContain('Test Holiday');
     expect(byId.de_namedays.findings[0]).toContain('Roman');
+  });
+
+  it('extracts exact UN day mapping', async () => {
+    const out = await runLookup({ date: '2026-03-03', sources: ['un'], state: 'BY' });
+    expect(out.results[0].findings[0]).toContain('World Wildlife Day');
+  });
+
+  it('extracts curiosity entries from monthly day section', async () => {
+    const out = await runLookup({ date: '2026-03-03', sources: ['curiosity_days'], state: 'BY' });
+    expect(out.results[0].findings).toEqual(['Curiosity One', 'Curiosity Two']);
   });
 });

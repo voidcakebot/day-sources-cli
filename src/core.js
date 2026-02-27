@@ -338,9 +338,10 @@ async function source5Aggregator(dateIso) {
   const url = `https://www.timeanddate.com/holidays/germany/?year=${year}`;
   const text = await fetchText(url);
 
-  const raw = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 10, true);
+  const raw = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 12, true);
   const findings = raw
-    .filter(x => !/<a\s|href=|class=|aria-label=|what\&rsquo\;s up in the day and night sky|moon guide|sky guide|lunar eclipse|artemis/i.test(x))
+    .filter(x => !/<a\s|href=|class=|aria-label=/i.test(x))
+    .filter(x => !/what\&rsquo\;s up in the day and night sky|moon guide|sky guide|lunar eclipse|artemis|daylight saving time|united states|new poll/i.test(x))
     .filter(x => /holiday|day|tag|feiertag|observance/i.test(x))
     .slice(0, 6);
 
@@ -354,14 +355,32 @@ async function source5Aggregator(dateIso) {
 
 async function source6Curiosity(dateIso) {
   const d = new Date(`${dateIso}T00:00:00Z`);
-  const monthNamesDe = ['januar','februar','maerz','april','mai','juni','juli','august','september','oktober','november','dezember'];
-  const monthSlug = monthNamesDe[d.getUTCMonth()];
+  const monthNamesDeSlug = ['januar','februar','maerz','april','mai','juni','juli','august','september','oktober','november','dezember'];
+  const monthNamesDeTitle = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const monthSlug = monthNamesDeSlug[d.getUTCMonth()];
+  const monthTitle = monthNamesDeTitle[d.getUTCMonth()];
   const day = d.getUTCDate();
   const url = `https://r.jina.ai/http://www.kuriose-feiertage.de/kalender/${monthSlug}/${day}/`;
   const text = await fetchText(url);
-  const findings = curatedExtract(text, [`${day}. februar`, `am ${day}. februar`], 6, true)
-    .filter(x => !/404|seite nicht gefunden|image/i.test(x))
-    .filter(x => !/^\d{1,2}\.\s*[A-Za-zäöüÄÖÜ]+:?$/i.test(x));
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const dayHeader = new RegExp(`^${day}\\.\\s+${monthTitle}:$`, 'i');
+  const start = lines.findIndex(l => dayHeader.test(l));
+
+  const findings = [];
+  if (start >= 0) {
+    for (let i = start + 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^\d{1,2}\.\s+[A-Za-zÄÖÜäöüß]+:$/.test(line)) break;
+      const m = line.match(/^\*\s+\[(.+?)\]\(.+\)$/);
+      if (m?.[1]) {
+        const item = cleanup(m[1]);
+        if (!/impressum|datenschutz|home|menü/i.test(item)) findings.push(item);
+      }
+      if (findings.length >= 8) break;
+    }
+  }
+
   return {
     source: 'curiosity_days',
     title: 'Curiosity days (non-authoritative)',
