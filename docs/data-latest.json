@@ -16,7 +16,7 @@
       "No public holiday on this date for selected state."
     ],
     "nameDays": [
-      "No exact German name-day match found in quick scan."
+      "Name days: Gabriel, Marko, Baldur"
     ]
   },
   "results": [
@@ -54,9 +54,9 @@
     {
       "source": "4",
       "title": "German name days",
-      "url": "https://r.jina.ai/http://www.namedaycalendar.com/germany",
+      "url": "https://www.namedaycalendar.com/germany/february/27",
       "findings": [
-        "No exact German name-day match found in quick scan."
+        "Name days: Gabriel, Marko, Baldur"
       ]
     },
     {
@@ -73,8 +73,7 @@
       "url": "https://r.jina.ai/http://www.kuriose-feiertage.de/kalender/februar/27/",
       "findings": [
         "Der internationale Pokémon-Tag – Pokémon Day am 27. Februar",
-        "Welteisbärentag – International Polar Bear Day am 27. Februar",
-        "27. Februar:"
+        "Welteisbärentag – International Polar Bear Day am 27. Februar"
       ]
     }
   ]

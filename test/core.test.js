@@ -31,7 +31,7 @@ describe('runLookup', () => {
       if (u.includes('namedaycalendar.com')) {
         return {
           ok: true,
-          text: async () => 'February 28: Roman, Hilary\nOther line'
+          text: async () => '<div class="name">Roman</div><div class="name">Hilary</div>'
         };
       }
 

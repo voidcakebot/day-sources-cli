@@ -130,15 +130,21 @@ async function source3Institutions(dateIso) {
 }
 
 async function source4NameDays(dateIso) {
-  const { day, monthName } = mdDate(dateIso);
-  const url = 'https://r.jina.ai/http://www.namedaycalendar.com/germany';
-  const text = await fetchText(url);
-  const findings = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 4, true);
+  const d = new Date(`${dateIso}T00:00:00Z`);
+  const monthNamesEn = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+  const monthSlug = monthNamesEn[d.getUTCMonth()];
+  const day = d.getUTCDate();
+  const url = `https://www.namedaycalendar.com/germany/${monthSlug}/${day}`;
+  const html = await fetchText(url);
+  const names = [...html.matchAll(/<div class="name">\s*([^<]+)\s*<\/div>/gi)]
+    .map(m => m[1].trim())
+    .filter(Boolean);
+
   return {
     source: '4',
     title: 'German name days',
     url,
-    findings: findings.length ? findings : ['No exact German name-day match found in quick scan.']
+    findings: names.length ? [`Name days: ${names.join(', ')}`] : ['No German name-day names found on source page.']
   };
 }
 
@@ -163,7 +169,8 @@ async function source6Curiosity(dateIso) {
   const url = `https://r.jina.ai/http://www.kuriose-feiertage.de/kalender/${monthSlug}/${day}/`;
   const text = await fetchText(url);
   const findings = curatedExtract(text, [`${day}. februar`, `am ${day}. februar`], 6, true)
-    .filter(x => !/404|seite nicht gefunden|image/i.test(x));
+    .filter(x => !/404|seite nicht gefunden|image/i.test(x))
+    .filter(x => !/^\d{1,2}\.\s*[A-Za-zäöüÄÖÜ]+:?$/i.test(x));
   return {
     source: '6',
     title: 'Curiosity days (non-authoritative)',
