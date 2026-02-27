@@ -1,3 +1,7 @@
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
 const MONTH_NAMES = [
   'january','february','march','april','may','june','july','august','september','october','november','december'
 ];
@@ -42,10 +46,114 @@ function mdDate(dateIso) {
   return { day: d.getUTCDate(), monthName: MONTH_NAMES[d.getUTCMonth()], year: d.getUTCFullYear() };
 }
 
-async function fetchText(url) {
-  const res = await fetch(url, { headers: { 'User-Agent': 'day-sources-cli/0.2' } });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.text();
+const CACHE_DIR = process.env.DAY_SOURCES_CACHE_DIR || path.join(process.cwd(), '.cache', 'http');
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function cachePathFor(url) {
+  const key = createHash('sha1').update(url).digest('hex');
+  return path.join(CACHE_DIR, `${key}.json`);
+}
+
+async function readCache(url, maxAgeMs) {
+  try {
+    const p = cachePathFor(url);
+    const raw = await readFile(p, 'utf8');
+    const item = JSON.parse(raw);
+    if (!item?.text || !item?.savedAt) return null;
+    if (Date.now() - item.savedAt > maxAgeMs) return null;
+    return item.text;
+  } catch {
+    return null;
+  }
+}
+
+async function readStaleCache(url) {
+  try {
+    const p = cachePathFor(url);
+    const raw = await readFile(p, 'utf8');
+    const item = JSON.parse(raw);
+    return item?.text || null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCache(url, text) {
+  try {
+    await mkdir(CACHE_DIR, { recursive: true });
+    const p = cachePathFor(url);
+    await writeFile(p, JSON.stringify({ savedAt: Date.now(), text }), 'utf8');
+  } catch {
+    // ignore cache write errors
+  }
+}
+
+async function fetchOnce(url, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      headers: { 'User-Agent': 'day-sources-cli/0.3' },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchText(url, options = {}) {
+  const timeoutMs = options.timeoutMs ?? 15000;
+  const attempts = options.attempts ?? 4;
+  const cacheTtlMs = options.cacheTtlMs ?? 1000 * 60 * 60 * 6;
+
+  // fresh cache first
+  const fresh = await readCache(url, cacheTtlMs);
+  if (fresh) return fresh;
+
+  const candidates = [url];
+  if (url.startsWith('https://r.jina.ai/http://')) {
+    candidates.push(url.replace('https://r.jina.ai/http://', 'https://'));
+  }
+
+  let lastError = null;
+
+  for (const candidate of candidates) {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const res = await fetchOnce(candidate, timeoutMs);
+        if (res.ok) {
+          const text = await res.text();
+          await writeCache(url, text);
+          return text;
+        }
+
+        // Retry for limits/server-side instability
+        if (res.status === 429 || res.status >= 500) {
+          lastError = new Error(`${res.status} ${res.statusText}`);
+          const backoff = 600 * Math.pow(2, i) + Math.floor(Math.random() * 200);
+          await sleep(backoff);
+          continue;
+        }
+
+        throw new Error(`${res.status} ${res.statusText}`);
+      } catch (err) {
+        lastError = err;
+        if (i < attempts - 1) {
+          const backoff = 600 * Math.pow(2, i) + Math.floor(Math.random() * 200);
+          await sleep(backoff);
+        }
+      }
+    }
+  }
+
+  // stale cache as final fallback when upstream is rate-limited/down
+  const stale = await readStaleCache(url);
+  if (stale) return stale;
+
+  throw lastError || new Error('fetch failed');
 }
 
 function cleanup(line) {
