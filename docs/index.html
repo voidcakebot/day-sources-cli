@@ -1,23 +1,291 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Day Sources CLI Demo</title>
-  <style>body{font-family:system-ui,Arial,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem}pre{background:#111;color:#eee;padding:1rem;overflow:auto;border-radius:8px}</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Day Sources · Daily Observances</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a33;
+      --panel-2: #1a2548;
+      --line: #2a3968;
+      --text: #e8eeff;
+      --muted: #9fb0de;
+      --accent: #8b5cf6;
+      --accent-2: #22d3ee;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --radius: 14px;
+      --shadow: 0 12px 40px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 500px at 10% -10%, rgba(139,92,246,.25), transparent 60%),
+        radial-gradient(1000px 500px at 90% -20%, rgba(34,211,238,.22), transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 18px 42px; }
+
+    .hero {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(1.6rem, 3vw, 2.3rem);
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .meta {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: .9rem;
+      color: var(--muted);
+    }
+
+    .pill b { color: var(--text); font-weight: 600; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+    }
+
+    .name { margin: 0; font-size: 1rem; font-weight: 600; }
+    .key {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: .75rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    ul.findings {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    ul.findings li {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      border-radius: 10px;
+      padding: 9px 10px;
+      color: var(--text);
+      font-size: .92rem;
+      line-height: 1.45;
+    }
+
+    li.empty { color: var(--muted); border-left: 3px solid var(--warn); }
+    li.good { border-left: 3px solid var(--ok); }
+
+    .src {
+      margin-top: 10px;
+      font-size: .8rem;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .src a { color: var(--accent-2); text-decoration: none; }
+    .src a:hover { text-decoration: underline; }
+
+    .loading, .error {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 22px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    footer {
+      margin-top: 18px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+
+    footer a { color: var(--accent-2); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
-  <h1>Day Sources Demo (1 + 3)</h1>
-  <p>This page shows the latest generated output from the CLI.</p>
-  <button id="reload">Reload latest</button>
-  <pre id="out">Loading...</pre>
+  <main class="wrap">
+    <section id="hero" class="hero" style="display:none"></section>
+    <section id="content" class="loading">Loading latest data…</section>
+    <footer>
+      Powered by <a href="https://github.com/voidcakebot/day-sources-cli" target="_blank" rel="noreferrer">day-sources-cli</a>
+    </footer>
+  </main>
+
   <script>
-    async function load() {
-      const res = await fetch('./data-latest.json?ts=' + Date.now());
-      const json = await res.json();
-      document.getElementById('out').textContent = JSON.stringify(json, null, 2);
+    const ICONS = {
+      un: '🌐',
+      de_holidays: '🇩🇪',
+      who_days: '🏥',
+      unesco_days: '📚',
+      eu_days: '🇪🇺',
+      de_namedays: '👤',
+      timeanddate: '📅',
+      curiosity_days: '✨'
+    };
+
+    const TITLES = {
+      un: 'UN International Days',
+      de_holidays: 'German Public Holidays',
+      who_days: 'WHO Institution Days',
+      unesco_days: 'UNESCO Institution Days',
+      eu_days: 'EU Institution Days',
+      de_namedays: 'German Name Days',
+      timeanddate: 'Timeanddate Aggregator',
+      curiosity_days: 'Curiosity Days'
+    };
+
+    function esc(s) {
+      return String(s)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
     }
-    document.getElementById('reload').addEventListener('click', load);
+
+    function renderHero(data) {
+      const el = document.getElementById('hero');
+      el.innerHTML = `
+        <h1 class="title">Daily Observances Snapshot</h1>
+        <p class="subtitle">Modern preview of CLI output from GitHub Pages</p>
+        <div class="meta">
+          <div class="pill">Date: <b>${esc(data.date || '—')}</b></div>
+          <div class="pill">State: <b>${esc(data.state || '—')}</b></div>
+          <div class="pill">Sources: <b>${esc((data.requestedSources || []).length)}</b></div>
+          <div class="pill">Requested: <b>${esc((data.requestedSources || []).join(', ') || '—')}</b></div>
+        </div>
+      `;
+      el.style.display = 'block';
+    }
+
+    function normalizeUrl(url) {
+      if (!url) return '';
+      return Array.isArray(url) ? url[0] : url;
+    }
+
+    function renderCards(data) {
+      const results = Array.isArray(data.results) ? data.results : [];
+      if (!results.length) {
+        return `<div class="error">No results found in data-latest.json.</div>`;
+      }
+
+      const cards = results.map((r) => {
+        const key = r.source || 'unknown';
+        const title = TITLES[key] || r.title || key;
+        const icon = ICONS[key] || '•';
+        const findings = Array.isArray(r.findings) ? r.findings : [];
+        const url = normalizeUrl(r.url);
+
+        const items = findings.length
+          ? findings.map(f => {
+              const empty = /^no\s/i.test(String(f).trim()) || /source error/i.test(String(f).trim());
+              return `<li class="${empty ? 'empty' : 'good'}">${esc(f)}</li>`;
+            }).join('')
+          : '<li class="empty">No findings</li>';
+
+        return `
+          <article class="card">
+            <div class="head">
+              <div class="icon">${icon}</div>
+              <div>
+                <h3 class="name">${esc(title)}</h3>
+                <p class="key">${esc(key)}</p>
+              </div>
+            </div>
+            <ul class="findings">${items}</ul>
+            ${url ? `<div class="src">Source: <a href="${esc(url)}" target="_blank" rel="noreferrer">${esc(url)}</a></div>` : ''}
+          </article>
+        `;
+      }).join('');
+
+      return `<div class="grid">${cards}</div>`;
+    }
+
+    async function load() {
+      const content = document.getElementById('content');
+      try {
+        const res = await fetch(`./data-latest.json?ts=${Date.now()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        renderHero(data);
+        content.className = '';
+        content.innerHTML = renderCards(data);
+      } catch (err) {
+        content.className = 'error';
+        content.textContent = `Failed to load data-latest.json (${err.message}).`;
+      }
+    }
+
     load();
   </script>
 </body>
