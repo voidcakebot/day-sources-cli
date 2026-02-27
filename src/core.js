@@ -284,13 +284,28 @@ async function sourceWhoDays(dateIso) {
   };
 }
 
+const UNESCO_FIXED_DAYS = [
+  {
+    month: 3,
+    day: 4,
+    name: 'World Engineering Day for Sustainable Development',
+    url: 'https://www.unesco.org/en/days/engineering-sustainable-development'
+  }
+];
+
 async function sourceUnescoDays(dateIso) {
   const d = new Date(`${dateIso}T00:00:00Z`);
   const day = d.getUTCDate();
   const month = d.getUTCMonth() + 1;
   const url = 'https://r.jina.ai/https://www.unesco.org/en/days';
   const text = await fetchText(url);
-  const findings = parseMarkdownDatedObservances(text, day, month);
+  let findings = parseMarkdownDatedObservances(text, day, month);
+
+  if (!findings.length) {
+    const fixed = UNESCO_FIXED_DAYS.filter(x => x.month === month && x.day === day).map(x => x.name);
+    findings = fixed;
+  }
+
   return {
     source: 'unesco_days',
     title: 'UNESCO institution days',

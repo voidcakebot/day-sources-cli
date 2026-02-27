@@ -81,4 +81,9 @@ describe('runLookup', () => {
     const out = await runLookup({ date: '2026-03-03', sources: ['curiosity_days'], state: 'BY' });
     expect(out.results[0].findings).toEqual(['Curiosity One', 'Curiosity Two']);
   });
+
+  it('falls back to fixed UNESCO day mapping for 4 March', async () => {
+    const out = await runLookup({ date: '2026-03-04', sources: ['unesco_days'], state: 'BY' });
+    expect(out.results[0].findings[0]).toContain('World Engineering Day for Sustainable Development');
+  });
 });
