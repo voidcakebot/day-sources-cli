@@ -46,7 +46,7 @@ function mdDate(dateIso) {
   return { day: d.getUTCDate(), monthName: MONTH_NAMES[d.getUTCMonth()], year: d.getUTCFullYear() };
 }
 
-const CACHE_DIR = process.env.DAY_SOURCES_CACHE_DIR || path.join(process.cwd(), '.cache', 'http');
+const CACHE_DIR = process.env.DAY_SOURCES_CACHE_DIR || path.join(process.cwd(), '.cache', (process.env.NODE_ENV || 'dev'), 'http');
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -57,6 +57,15 @@ function cachePathFor(url) {
   return path.join(CACHE_DIR, `${key}.json`);
 }
 
+function isValidCachedText(url, text) {
+  if (!text) return false;
+  if (url.startsWith('https://r.jina.ai/http://')) {
+    if (/<!doctype html|<html/i.test(text)) return false;
+    if (text.length < 200) return false;
+  }
+  return true;
+}
+
 async function readCache(url, maxAgeMs) {
   try {
     const p = cachePathFor(url);
@@ -64,6 +73,7 @@ async function readCache(url, maxAgeMs) {
     const item = JSON.parse(raw);
     if (!item?.text || !item?.savedAt) return null;
     if (Date.now() - item.savedAt > maxAgeMs) return null;
+    if (!isValidCachedText(url, item.text)) return null;
     return item.text;
   } catch {
     return null;
@@ -75,6 +85,7 @@ async function readStaleCache(url) {
     const p = cachePathFor(url);
     const raw = await readFile(p, 'utf8');
     const item = JSON.parse(raw);
+    if (!isValidCachedText(url, item?.text)) return null;
     return item?.text || null;
   } catch {
     return null;
@@ -114,9 +125,6 @@ async function fetchText(url, options = {}) {
   if (fresh) return fresh;
 
   const candidates = [url];
-  if (url.startsWith('https://r.jina.ai/http://')) {
-    candidates.push(url.replace('https://r.jina.ai/http://', 'https://'));
-  }
 
   let lastError = null;
 
