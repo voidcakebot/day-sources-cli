@@ -273,7 +273,7 @@ async function sourceWhoDays(dateIso) {
   const d = new Date(`${dateIso}T00:00:00Z`);
   const day = d.getUTCDate();
   const month = d.getUTCMonth() + 1;
-  const url = 'https://r.jina.ai/http://www.who.int/campaigns/world-health-days';
+  const url = 'https://r.jina.ai/https://www.who.int/campaigns';
   const text = await fetchText(url);
   const findings = parseMarkdownDatedObservances(text, day, month);
   return {
@@ -288,7 +288,7 @@ async function sourceUnescoDays(dateIso) {
   const d = new Date(`${dateIso}T00:00:00Z`);
   const day = d.getUTCDate();
   const month = d.getUTCMonth() + 1;
-  const url = 'https://r.jina.ai/http://www.unesco.org/en/days';
+  const url = 'https://r.jina.ai/https://www.unesco.org/en/days';
   const text = await fetchText(url);
   const findings = parseMarkdownDatedObservances(text, day, month);
   return {
@@ -303,7 +303,7 @@ async function sourceEuDays(dateIso) {
   const d = new Date(`${dateIso}T00:00:00Z`);
   const day = d.getUTCDate();
   const month = d.getUTCMonth() + 1;
-  const url = 'https://r.jina.ai/http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en';
+  const url = 'https://r.jina.ai/https://european-union.europa.eu/principles-countries-history/europe-day_en';
   const text = await fetchText(url);
   const findings = parseMarkdownDatedObservances(text, day, month);
   return {
