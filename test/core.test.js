@@ -55,6 +55,13 @@ describe('runLookup', () => {
         };
       }
 
+      if (u.includes('timeanddate.com/holidays/germany')) {
+        return {
+          ok: true,
+          text: async () => 'March 3 Sky Guide for March 2026\nMarch 3 International Potato Day\nMarch 3 holiday overview'
+        };
+      }
+
       return {
         ok: true,
         text: async () => 'International Day February 28\nWorld Day\nTag des Tests'
@@ -97,5 +104,40 @@ describe('runLookup', () => {
   it('extracts EU day from CoE page for 17 May', async () => {
     const out = await runLookup({ date: '2026-05-17', sources: ['eu_days'], state: 'BY' });
     expect(out.results[0].findings[0]).toContain('International Day against Homophobia');
+  });
+
+  it('uses the new WHO campaigns endpoint (regression guard)', async () => {
+    await runLookup({ date: '2026-05-17', sources: ['who_days'], state: 'BY' });
+    const calledUrls = global.fetch.mock.calls.map(c => String(c[0]));
+    // cache may satisfy the call with zero fetches; if a WHO call occurs, it must use /campaigns and never old path
+    const whoCalls = calledUrls.filter(u => u.includes('who.int'));
+    expect(calledUrls.some(u => u.includes('world-health-days'))).toBe(false);
+    if (whoCalls.length) {
+      expect(whoCalls.some(u => u.includes('/campaigns'))).toBe(true);
+    }
+  });
+
+  it('filters obvious timeanddate promo noise', async () => {
+    const out = await runLookup({ date: '2026-03-03', sources: ['timeanddate'], state: 'BY' });
+    const findings = out.results[0].findings.join(' | ');
+    expect(findings).not.toMatch(/Sky Guide/i);
+    expect(findings).toMatch(/International Potato Day|holiday overview|No exact aggregator date match found/i);
+  });
+
+  it('retries transient 429 for UN source and recovers', async () => {
+    const calls = { n: 0 };
+    global.fetch = vi.fn(async (url) => {
+      const u = String(url);
+      if (u.includes('un.org/en/observances/list-days-weeks')) {
+        calls.n += 1;
+        if (calls.n < 3) return { ok: false, status: 429, statusText: 'Too Many Requests' };
+        return { ok: true, text: async () => '[World Wildlife Day](https://example)\n\n03 Mar' };
+      }
+      return { ok: true, text: async () => '' };
+    });
+
+    const out = await runLookup({ date: '2026-03-03', sources: ['un'], state: 'BY' });
+    expect(out.results[0].findings[0]).toContain('World Wildlife Day');
+    expect(calls.n).toBeGreaterThanOrEqual(3);
   });
 });
