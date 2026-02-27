@@ -49,20 +49,23 @@ function cleanup(line) {
     .trim();
 }
 
-function curatedExtract(text, patterns, limit = 6) {
+function curatedExtract(text, patterns, limit = 6, strictDate = false) {
   const lines = text
     .split('\n')
     .map(cleanup)
     .filter(Boolean)
-    .filter(l => l.length > 15 && l.length < 220)
-    .filter(l => !/(skip to|cookies|main content|menu|impressum|datenschutz|source:|url source:)/i.test(l));
+    .filter(l => l.length > 10 && l.length < 220)
+    .filter(l => !/(skip to|cookies|main content|menu|impressum|datenschutz|source:|url source:|http:|https:|^title:|^\*\s|\!\[image)/i.test(l))
+    .filter(l => !/^\d{1,2}\s+[a-z]+\s+\d{4}$/i.test(l));
 
   const out = [];
   const seen = new Set();
   for (const line of lines) {
     const lc = line.toLowerCase();
-    const score = patterns.reduce((acc, p) => acc + (lc.includes(p) ? 2 : 0), 0) + ((/international|world|tag|day|namenstag|feiertag/i.test(lc)) ? 1 : 0);
-    if (score < 2) continue;
+    const dateHit = patterns.some(p => lc.includes(p));
+    if (strictDate && !dateHit) continue;
+    const score = patterns.reduce((acc, p) => acc + (lc.includes(p) ? 3 : 0), 0) + ((/international|world|tag|day|namenstag|feiertag|observance/i.test(lc)) ? 1 : 0);
+    if (score < (strictDate ? 3 : 2)) continue;
     if (seen.has(line)) continue;
     seen.add(line);
     out.push({ line, score });
@@ -75,11 +78,12 @@ async function source1UN(dateIso) {
   const { day, monthName } = mdDate(dateIso);
   const url = 'https://r.jina.ai/http://www.un.org/en/observances/list-days-weeks';
   const text = await fetchText(url);
+  const findings = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 6, true);
   return {
     source: '1',
     title: 'UN International Days',
     url,
-    findings: curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`, 'international day'])
+    findings: findings.length ? findings : ['No exact UN observance match found for this date in quick index scan.']
   };
 }
 
@@ -112,59 +116,59 @@ async function source3Institutions(dateIso) {
   for (const url of urls) {
     try {
       const text = await fetchText(url);
-      findings.push(...curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`, 'day', 'world'], 3));
-    } catch (e) {
-      findings.push(`Failed to fetch ${url}: ${e.message}`);
+      findings.push(...curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 2, true));
+    } catch {
+      // ignore single-source errors here, final fallback below
     }
   }
   return {
     source: '3',
     title: 'WHO/UNESCO/EU institution days',
     url: urls,
-    findings: findings.slice(0, 8)
+    findings: findings.length ? findings.slice(0, 8) : ['No exact WHO/UNESCO/EU date match found in quick scan.']
   };
 }
 
 async function source4NameDays(dateIso) {
-  const d = new Date(`${dateIso}T00:00:00Z`);
-  const month = d.getUTCMonth() + 1;
-  const day = d.getUTCDate();
-  const url = `https://api.abalin.net/namedays?country=de&month=${month}&day=${day}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Nameday API failed: ${res.status}`);
-  const json = await res.json();
-  const names = (json?.data?.namedays?.de || '').split(',').map(s => s.trim()).filter(Boolean);
+  const { day, monthName } = mdDate(dateIso);
+  const url = 'https://r.jina.ai/http://www.namedaycalendar.com/germany';
+  const text = await fetchText(url);
+  const findings = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 4, true);
   return {
     source: '4',
     title: 'German name days',
     url,
-    findings: names.length ? [`Name days: ${names.join(', ')}`] : ['No name days found.']
+    findings: findings.length ? findings : ['No exact German name-day match found in quick scan.']
   };
 }
 
 async function source5Aggregator(dateIso) {
-  const { day, monthName } = mdDate(dateIso);
-  const url = 'https://r.jina.ai/http://www.timeanddate.com/holidays/';
+  const { day, monthName, year } = mdDate(dateIso);
+  const url = `https://www.timeanddate.com/holidays/germany/?year=${year}`;
   const text = await fetchText(url);
+  const findings = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 6, true);
   return {
     source: '5',
     title: 'Aggregator (timeanddate)',
     url,
-    findings: curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`, 'holiday', 'international'])
+    findings: findings.length ? findings : ['No exact aggregator date match found.']
   };
 }
 
 async function source6Curiosity(dateIso) {
   const d = new Date(`${dateIso}T00:00:00Z`);
-  const month = d.getUTCMonth() + 1;
+  const monthNamesDe = ['januar','februar','maerz','april','mai','juni','juli','august','september','oktober','november','dezember'];
+  const monthSlug = monthNamesDe[d.getUTCMonth()];
   const day = d.getUTCDate();
-  const url = `https://r.jina.ai/http://www.kuriose-feiertage.de/kalender/${month}/${day}/`;
+  const url = `https://r.jina.ai/http://www.kuriose-feiertage.de/kalender/${monthSlug}/${day}/`;
   const text = await fetchText(url);
+  const findings = curatedExtract(text, [`${day}. februar`, `am ${day}. februar`], 6, true)
+    .filter(x => !/404|seite nicht gefunden|image/i.test(x));
   return {
     source: '6',
     title: 'Curiosity days (non-authoritative)',
     url,
-    findings: curatedExtract(text, ['tag', 'day', 'feiertag', 'national'])
+    findings: findings.length ? findings : ['No curiosity-day entry extracted for this date.']
   };
 }
 
@@ -191,10 +195,9 @@ export async function runLookup({ date, sources, state = 'BY', germanyMode = fal
 
   let germany = null;
   if (germanyMode) {
-    const [holidays, names] = await Promise.all([
-      safe('2', 'German official/public holiday data (state-specific)', () => source2GermanyOfficial(date, normalizedState)),
-      safe('4', 'German name days', () => source4NameDays(date))
-    ]);
+    const byId = new Map(results.map(r => [r.source, r]));
+    const holidays = byId.get('2') || await safe('2', 'German official/public holiday data (state-specific)', () => source2GermanyOfficial(date, normalizedState));
+    const names = byId.get('4') || await safe('4', 'German name days', () => source4NameDays(date));
     germany = {
       state: normalizedState,
       publicHolidays: holidays.findings,

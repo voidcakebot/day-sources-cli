@@ -28,12 +28,10 @@ describe('runLookup', () => {
         };
       }
 
-      if (u.includes('api.abalin.net')) {
+      if (u.includes('namedaycalendar.com')) {
         return {
           ok: true,
-          json: async () => ({
-            data: { namedays: { de: 'Roman, Hilary' } }
-          })
+          text: async () => 'February 28: Roman, Hilary\nOther line'
         };
       }
 

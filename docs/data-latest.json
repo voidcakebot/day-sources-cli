@@ -16,7 +16,7 @@
       "No public holiday on this date for selected state."
     ],
     "nameDays": [
-      "Source error: fetch failed"
+      "No exact German name-day match found in quick scan."
     ]
   },
   "results": [
@@ -25,12 +25,7 @@
       "title": "UN International Days",
       "url": "https://r.jina.ai/http://www.un.org/en/observances/list-days-weeks",
       "findings": [
-        "Title: List of International Days and Weeks | United Nations",
-        "International Day of Education (A/RES/73/25)",
-        "International Day of Clean Energy (A/RES/77/327)",
-        "International Day of Commemoration in Memory of the Victims of the Holocaust (A/RES/60/7)",
-        "International Day of Peaceful Coexistence (A/RES/79/269)",
-        "International Day of Human Fraternity (A/RES/75/200)"
+        "No exact UN observance match found for this date in quick index scan."
       ]
     },
     {
@@ -53,42 +48,33 @@
         "https://r.jina.ai/http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en"
       ],
       "findings": [
-        "[Health Topics](http://www.who.int/campaigns/world-health-days#)",
-        "* [All topics](http://www.who.int/campaigns/world-health-days#)",
-        "* [Resources](http://www.who.int/campaigns/world-health-days#)",
-        "Title: International Days",
-        "* Memory of the World Register",
-        "* World Heritage",
-        "* Europe and worldwide offices"
+        "No exact WHO/UNESCO/EU date match found in quick scan."
       ]
     },
     {
       "source": "4",
       "title": "German name days",
-      "url": "",
+      "url": "https://r.jina.ai/http://www.namedaycalendar.com/germany",
       "findings": [
-        "Source error: fetch failed"
+        "No exact German name-day match found in quick scan."
       ]
     },
     {
       "source": "5",
       "title": "Aggregator (timeanddate)",
-      "url": "",
+      "url": "https://www.timeanddate.com/holidays/germany/?year=2026",
       "findings": [
-        "Source error: 451 Unavailable For Legal Reasons"
+        "No exact aggregator date match found."
       ]
     },
     {
       "source": "6",
       "title": "Curiosity days (non-authoritative)",
-      "url": "https://r.jina.ai/http://www.kuriose-feiertage.de/kalender/2/27/",
+      "url": "https://r.jina.ai/http://www.kuriose-feiertage.de/kalender/februar/27/",
       "findings": [
-        "404 - Seite nicht gefunden - www.kuriose-feiertage.de",
-        "www.kuriose-feiertage.de",
-        "Feiertage weltweit & kalendarische Kuriositäten",
-        "![Image 2: www.kuriose-feiertage.de](https://www.kuriose-feiertage.de/)",
-        "![Image 4: www.kuriose-feiertage.de](https://www.kuriose-feiertage.de/ \"www.kuriose-feiertage.de\")",
-        "* Alkohol-Feiertage"
+        "Der internationale Pokémon-Tag – Pokémon Day am 27. Februar",
+        "Welteisbärentag – International Polar Bear Day am 27. Februar",
+        "27. Februar:"
       ]
     }
   ]
