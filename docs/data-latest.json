@@ -2,8 +2,23 @@
   "date": "2026-02-27",
   "requestedSources": [
     "1",
-    "3"
+    "2",
+    "3",
+    "4",
+    "5",
+    "6"
   ],
+  "state": "BY",
+  "germanyMode": true,
+  "germany": {
+    "state": "BY",
+    "publicHolidays": [
+      "No public holiday on this date for selected state."
+    ],
+    "nameDays": [
+      "Source error: fetch failed"
+    ]
+  },
   "results": [
     {
       "source": "1",
@@ -11,13 +26,22 @@
       "url": "https://r.jina.ai/http://www.un.org/en/observances/list-days-weeks",
       "findings": [
         "Title: List of International Days and Weeks | United Nations",
-        "[International Day of Education](https://www.un.org/en/observances/education-day) ([A/RES/73/25](http://undocs.org/en/A/RES/73/25))",
-        "[International Day of Clean Energy](https://www.un.org/en/observances/clean-energy-day) ([A/RES/77/327](https://www.undocs.org/A/RES/77/327))",
-        "[International Day of Commemoration in Memory of the Victims of the Holocaust](https://www.un.org/en/observances/commemoration-holocaust-victims-day) ([A/RES/60/7](http://undocs.org/en/A/RES/60/7))",
-        "[International Day of Peaceful Coexistence](https://www.un.org/en/observances/peaceful-coexistence-day) ([A/RES/79/269](https://docs.un.org/A/RES/79/269))",
-        "[International Day of Human Fraternity](https://www.un.org/en/observances/human-fraternity) ([A/RES/75/200](https://undocs.org/en/A/RES/75/200))",
-        "[International Day of Zero Tolerance to Female Genital Mutilation](https://www.un.org/en/observances/female-genital-mutilation-day) ([A/RES/67/146](https://undocs.org/en/A/RES/67/146))",
-        "[International Day of the Arabian Leopard](https://www.un.org/en/observances/arabian-leopard-day) ([A/RES/77/295](https://www.undocs.org/en/A/RES/77/295))"
+        "International Day of Education (A/RES/73/25)",
+        "International Day of Clean Energy (A/RES/77/327)",
+        "International Day of Commemoration in Memory of the Victims of the Holocaust (A/RES/60/7)",
+        "International Day of Peaceful Coexistence (A/RES/79/269)",
+        "International Day of Human Fraternity (A/RES/75/200)"
+      ]
+    },
+    {
+      "source": "2",
+      "title": "German official/public holiday data (state-specific)",
+      "url": [
+        "https://feiertage-api.de/api/?jahr=2026&nur_land=BY",
+        "https://www.gesetze-im-internet.de/"
+      ],
+      "findings": [
+        "No public holiday on this date for selected state."
       ]
     },
     {
@@ -29,15 +53,42 @@
         "https://r.jina.ai/http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en"
       ],
       "findings": [
-        "URL Source: http://www.who.int/campaigns/world-health-days",
-        "[Skip to main content](http://www.who.int/campaigns/world-health-days#content)",
-        "*   [Regions](http://www.who.int/campaigns/world-health-days#)",
+        "[Health Topics](http://www.who.int/campaigns/world-health-days#)",
+        "* [All topics](http://www.who.int/campaigns/world-health-days#)",
+        "* [Resources](http://www.who.int/campaigns/world-health-days#)",
         "Title: International Days",
-        "URL Source: http://www.unesco.org/en/days",
-        "*   [Memory of the World Register](https://www.unesco.org/en/memory-world)",
-        "URL Source: http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en",
-        "[Skip to main content](http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en#main-content)",
-        "[Accept all cookies](http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en#accept)[Accept only essential cookies](http://european-union.europa.eu/priorities-and-actions/eu-solidarity-eu-citizens/eu-days_en#refuse)"
+        "* Memory of the World Register",
+        "* World Heritage",
+        "* Europe and worldwide offices"
+      ]
+    },
+    {
+      "source": "4",
+      "title": "German name days",
+      "url": "",
+      "findings": [
+        "Source error: fetch failed"
+      ]
+    },
+    {
+      "source": "5",
+      "title": "Aggregator (timeanddate)",
+      "url": "",
+      "findings": [
+        "Source error: 451 Unavailable For Legal Reasons"
+      ]
+    },
+    {
+      "source": "6",
+      "title": "Curiosity days (non-authoritative)",
+      "url": "https://r.jina.ai/http://www.kuriose-feiertage.de/kalender/2/27/",
+      "findings": [
+        "404 - Seite nicht gefunden - www.kuriose-feiertage.de",
+        "www.kuriose-feiertage.de",
+        "Feiertage weltweit & kalendarische Kuriositäten",
+        "![Image 2: www.kuriose-feiertage.de](https://www.kuriose-feiertage.de/)",
+        "![Image 4: www.kuriose-feiertage.de](https://www.kuriose-feiertage.de/ \"www.kuriose-feiertage.de\")",
+        "* Alkohol-Feiertage"
       ]
     }
   ]
