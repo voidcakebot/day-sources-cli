@@ -329,7 +329,13 @@ async function source5Aggregator(dateIso) {
   const { day, monthName, year } = mdDate(dateIso);
   const url = `https://www.timeanddate.com/holidays/germany/?year=${year}`;
   const text = await fetchText(url);
-  const findings = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 6, true);
+
+  const raw = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 10, true);
+  const findings = raw
+    .filter(x => !/<a\s|href=|class=|aria-label=|what\&rsquo\;s up in the day and night sky|moon guide|sky guide|lunar eclipse|artemis/i.test(x))
+    .filter(x => /holiday|day|tag|feiertag|observance/i.test(x))
+    .slice(0, 6);
+
   return {
     source: 'timeanddate',
     title: 'Aggregator (timeanddate)',
