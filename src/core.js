@@ -8,20 +8,32 @@ const MONTH_NAMES = [
 
 const DE_STATES = ['BW','BY','BE','BB','HB','HH','HE','MV','NI','NW','RP','SL','SN','ST','SH','TH'];
 const ALL_SOURCE_KEYS = [
-  'un',
-  'de_holidays',
-  'who_days',
-  'unesco_days',
-  'eu_days',
-  'de_namedays',
-  'timeanddate',
-  'curiosity_days'
+  'un_scrape',
+  'de_holidays_api',
+  'who_days_scrape',
+  'unesco_days_scrape',
+  'eu_days_scrape',
+  'de_namedays_api',
+  'timeanddate_scrape',
+  'curiosity_days_scrape',
+  'wikidata_days_api'
 ];
+
+const SOURCE_ALIASES = {
+  un: 'un_scrape',
+  de_holidays: 'de_holidays_api',
+  who_days: 'who_days_scrape',
+  unesco_days: 'unesco_days_scrape',
+  eu_days: 'eu_days_scrape',
+  de_namedays: 'de_namedays_api',
+  timeanddate: 'timeanddate_scrape',
+  curiosity_days: 'curiosity_days_scrape'
+};
 
 export function parseArgs(argv) {
   const args = {
     date: new Date().toISOString().slice(0, 10),
-    sources: ['un', 'who_days', 'unesco_days', 'eu_days'],
+    sources: ['un_scrape', 'who_days_scrape', 'unesco_days_scrape', 'eu_days_scrape'],
     json: false,
     country: 'DE',
     state: 'BY',
@@ -32,7 +44,8 @@ export function parseArgs(argv) {
     if (a === '--date') args.date = argv[++i];
     else if (a === '--sources') {
       const raw = String(argv[++i]);
-      args.sources = raw === 'all' ? [...ALL_SOURCE_KEYS] : raw.split(',').map(s => s.trim()).filter(Boolean);
+      const parsed = raw === 'all' ? [...ALL_SOURCE_KEYS] : raw.split(',').map(s => s.trim()).filter(Boolean);
+      args.sources = parsed.map(s => SOURCE_ALIASES[s] || s);
     } else if (a === '--json') args.json = true;
     else if (a === '--country') args.country = String(argv[++i]).toUpperCase();
     else if (a === '--state') args.state = String(argv[++i]).toUpperCase();
@@ -259,8 +272,8 @@ async function source1UN(dateIso) {
   const text = await fetchText(url);
   const parsed = parseMarkdownDatedObservances(text, day, month);
   return {
-    source: 'un',
-    title: 'UN International Days',
+    source: 'un_scrape',
+    title: 'UN International Days (scrape)',
     url,
     findings: parsed.length ? parsed : ['No UN observance found for this exact date in source list.']
   };
@@ -277,8 +290,8 @@ async function source2GermanyOfficial(dateIso, state) {
     .map(([k]) => `${k} (${state})`);
 
   return {
-    source: 'de_holidays',
-    title: 'German official/public holiday data (state-specific)',
+    source: 'de_holidays_api',
+    title: 'German official/public holiday data (API, state-specific)',
     url: [apiUrl, 'https://www.gesetze-im-internet.de/'],
     findings: hits.length ? hits : ['No public holiday on this date for selected state.']
   };
@@ -292,8 +305,8 @@ async function sourceWhoDays(dateIso) {
   const text = await fetchText(url);
   const findings = parseMarkdownDatedObservances(text, day, month);
   return {
-    source: 'who_days',
-    title: 'WHO institution days',
+    source: 'who_days_scrape',
+    title: 'WHO institution days (scrape)',
     url,
     findings: findings.length ? findings : ['No WHO observance found for this exact date in current source page.']
   };
@@ -322,8 +335,8 @@ async function sourceUnescoDays(dateIso) {
   }
 
   return {
-    source: 'unesco_days',
-    title: 'UNESCO institution days',
+    source: 'unesco_days_scrape',
+    title: 'UNESCO institution days (scrape)',
     url,
     findings: findings.length ? findings : ['No UNESCO observance found for this exact date in current source page.']
   };
@@ -338,8 +351,8 @@ async function sourceEuDays(dateIso) {
   const inline = parseInlineDatedLinks(text, day, month);
   const findings = inline.length ? inline : parseMarkdownDatedObservances(text, day, month);
   return {
-    source: 'eu_days',
-    title: 'EU institution days',
+    source: 'eu_days_scrape',
+    title: 'EU institution days (scrape)',
     url,
     findings: findings.length ? findings : ['No EU observance found for this exact date in current source page.']
   };
@@ -347,26 +360,33 @@ async function sourceEuDays(dateIso) {
 
 async function source4NameDays(dateIso) {
   const d = new Date(`${dateIso}T00:00:00Z`);
-  const monthNamesEn = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-  const monthSlug = monthNamesEn[d.getUTCMonth()];
+  const month = d.getUTCMonth() + 1;
   const day = d.getUTCDate();
-  const url = `https://www.namedaycalendar.com/germany/${monthSlug}/${day}`;
-  const html = await fetchText(url);
-  const names = [...html.matchAll(/<div class="name">\s*([^<]+)\s*<\/div>/gi)]
-    .map(m => m[1].trim())
-    .filter(Boolean);
+  const apiUrl = `https://nameday.abalin.net/api/V2/today?country=de&month=${month}&day=${day}`;
+
+  const res = await fetch(apiUrl, { headers: { 'User-Agent': 'day-sources-cli/0.3' } });
+  if (!res.ok) throw new Error(`Nameday API failed: ${res.status}`);
+
+  const data = await res.json();
+  const raw = data?.data?.de;
+  const names = String(raw || '')
+    .split(',')
+    .map(x => x.trim())
+    .filter(Boolean)
+    .filter(x => !/^n\/a$/i.test(x));
 
   return {
-    source: 'de_namedays',
-    title: 'German name days',
-    url,
-    findings: names.length ? [`Name days: ${names.join(', ')}`] : ['No German name-day names found on source page.']
+    source: 'de_namedays_api',
+    title: 'German name days (API)',
+    url: apiUrl,
+    findings: names.length ? [`Name days: ${names.join(', ')}`] : ['No German name-day names found from API.']
   };
 }
 
 async function source5Aggregator(dateIso) {
   const { day, monthName, year } = mdDate(dateIso);
-  const url = `https://www.timeanddate.com/holidays/germany/?year=${year}`;
+  const baseUrl = `https://www.timeanddate.com/holidays/germany/?year=${year}`;
+  const url = `https://r.jina.ai/${baseUrl}`;
   const text = await fetchText(url);
 
   const raw = curatedExtract(text, [`${monthName} ${day}`, `${day} ${monthName}`], 12, true);
@@ -377,8 +397,8 @@ async function source5Aggregator(dateIso) {
     .slice(0, 6);
 
   return {
-    source: 'timeanddate',
-    title: 'Aggregator (timeanddate)',
+    source: 'timeanddate_scrape',
+    title: 'Aggregator (timeanddate scrape)',
     url,
     findings: findings.length ? findings : ['No exact aggregator date match found.']
   };
@@ -413,10 +433,63 @@ async function source6Curiosity(dateIso) {
   }
 
   return {
-    source: 'curiosity_days',
-    title: 'Curiosity days (non-authoritative)',
+    source: 'curiosity_days_scrape',
+    title: 'Curiosity days (non-authoritative scrape)',
     url,
     findings: findings.length ? findings : ['No curiosity-day entry extracted for this date.']
+  };
+}
+
+async function source7WikidataDaysApi(dateIso) {
+  const d = new Date(`${dateIso}T00:00:00Z`);
+  const day = d.getUTCDate();
+  const month = d.getUTCMonth() + 1;
+
+  const holidaysUrl = `https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/holidays/${month}/${day}`;
+  const holidaysBody = await fetchText(holidaysUrl, { timeoutMs: 15000, attempts: 2, cacheTtlMs: 1000 * 60 * 60 * 24 });
+  const holidaysJson = JSON.parse(holidaysBody);
+  const holidays = holidaysJson?.holidays || [];
+
+  const holidayItems = holidays
+    .map(h => {
+      const text = cleanup(String(h?.text || '')).replace(/^Christian feast day:\s*/i, '').trim();
+      const qid = (h?.pages || []).map(p => p?.wikibase_item).find(Boolean) || null;
+      return { text, qid };
+    })
+    .filter(x => x.text)
+    .slice(0, 20);
+
+  const qids = [...new Set(holidayItems.map(x => x.qid).filter(Boolean))];
+
+  let entities = {};
+  let entitiesUrl = '';
+  if (qids.length) {
+    entitiesUrl = `https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&languages=de|en&props=labels|sitelinks&ids=${encodeURIComponent(qids.join('|'))}`;
+    const entitiesBody = await fetchText(entitiesUrl, { timeoutMs: 15000, attempts: 2, cacheTtlMs: 1000 * 60 * 60 * 24 });
+    const entitiesJson = JSON.parse(entitiesBody);
+    entities = entitiesJson?.entities || {};
+  }
+
+  const findings = holidayItems
+    .map(({ text, qid }) => {
+      const ent = qid ? (entities[qid] || {}) : {};
+      const deTitle = ent?.sitelinks?.dewiki?.title;
+      const enTitle = ent?.sitelinks?.enwiki?.title;
+      const deUrl = deTitle ? `https://de.wikipedia.org/wiki/${encodeURIComponent(deTitle.replace(/ /g, '_'))}` : null;
+      const enUrl = enTitle ? `https://en.wikipedia.org/wiki/${encodeURIComponent(enTitle.replace(/ /g, '_'))}` : null;
+      if (deUrl) return `${text} (de: ${deUrl})`;
+      if (enUrl) return `${text} (en: ${enUrl})`;
+      return text;
+    })
+    .filter(Boolean)
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .slice(0, 10);
+
+  return {
+    source: 'wikidata_days_api',
+    title: 'Wikidata-linked observances (API)',
+    url: entitiesUrl ? [holidaysUrl, entitiesUrl] : holidaysUrl,
+    findings: findings.length ? findings : ['No Wikidata-linked observances found for this exact date.']
   };
 }
 
@@ -432,14 +505,15 @@ export async function runLookup({ date, sources, state = 'BY' }) {
 
   const tasks = [];
 
-  if (sources.includes('un')) tasks.push(safe('un', 'UN International Days', () => source1UN(date)));
-  if (sources.includes('de_holidays')) tasks.push(safe('de_holidays', 'German official/public holiday data (state-specific)', () => source2GermanyOfficial(date, normalizedState)));
-  if (sources.includes('who_days')) tasks.push(safe('who_days', 'WHO institution days', () => sourceWhoDays(date)));
-  if (sources.includes('unesco_days')) tasks.push(safe('unesco_days', 'UNESCO institution days', () => sourceUnescoDays(date)));
-  if (sources.includes('eu_days')) tasks.push(safe('eu_days', 'EU institution days', () => sourceEuDays(date)));
-  if (sources.includes('de_namedays')) tasks.push(safe('de_namedays', 'German name days', () => source4NameDays(date)));
-  if (sources.includes('timeanddate')) tasks.push(safe('timeanddate', 'Aggregator (timeanddate)', () => source5Aggregator(date)));
-  if (sources.includes('curiosity_days')) tasks.push(safe('curiosity_days', 'Curiosity days (non-authoritative)', () => source6Curiosity(date)));
+  if (sources.includes('un_scrape')) tasks.push(safe('un_scrape', 'UN International Days (scrape)', () => source1UN(date)));
+  if (sources.includes('de_holidays_api')) tasks.push(safe('de_holidays_api', 'German official/public holiday data (API, state-specific)', () => source2GermanyOfficial(date, normalizedState)));
+  if (sources.includes('who_days_scrape')) tasks.push(safe('who_days_scrape', 'WHO institution days (scrape)', () => sourceWhoDays(date)));
+  if (sources.includes('unesco_days_scrape')) tasks.push(safe('unesco_days_scrape', 'UNESCO institution days (scrape)', () => sourceUnescoDays(date)));
+  if (sources.includes('eu_days_scrape')) tasks.push(safe('eu_days_scrape', 'EU institution days (scrape)', () => sourceEuDays(date)));
+  if (sources.includes('de_namedays_api')) tasks.push(safe('de_namedays_api', 'German name days (API)', () => source4NameDays(date)));
+  if (sources.includes('timeanddate_scrape')) tasks.push(safe('timeanddate_scrape', 'Aggregator (timeanddate scrape)', () => source5Aggregator(date)));
+  if (sources.includes('curiosity_days_scrape')) tasks.push(safe('curiosity_days_scrape', 'Curiosity days (non-authoritative scrape)', () => source6Curiosity(date)));
+  if (sources.includes('wikidata_days_api')) tasks.push(safe('wikidata_days_api', 'Wikidata observances (API)', () => source7WikidataDaysApi(date)));
 
   const results = await Promise.all(tasks);
 

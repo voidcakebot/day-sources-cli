@@ -5,7 +5,7 @@ describe('parseArgs', () => {
   it('parses all-source mode and state', () => {
     const a = parseArgs(['--date', '2026-02-28', '--sources', 'all', '--state', 'NW', '--json']);
     expect(a.date).toBe('2026-02-28');
-    expect(a.sources).toEqual(['un','de_holidays','who_days','unesco_days','eu_days','de_namedays','timeanddate','curiosity_days']);
+    expect(a.sources).toEqual(['un_scrape','de_holidays_api','who_days_scrape','unesco_days_scrape','eu_days_scrape','de_namedays_api','timeanddate_scrape','curiosity_days_scrape','wikidata_days_api']);
     expect(a.state).toBe('NW');
     expect(a.json).toBe(true);
   });
@@ -27,10 +27,10 @@ describe('runLookup', () => {
         };
       }
 
-      if (u.includes('namedaycalendar.com')) {
+      if (u.includes('nameday.abalin.net/api/V2/today')) {
         return {
           ok: true,
-          text: async () => '<div class="name">Roman</div><div class="name">Hilary</div>'
+          json: async () => ({ success: true, data: { de: 'Roman, Hilary' } })
         };
       }
 
@@ -62,6 +62,31 @@ describe('runLookup', () => {
         };
       }
 
+      if (u.includes('api.wikimedia.org/feed/v1/wikipedia/en/onthisday/holidays')) {
+        return {
+          ok: true,
+          text: async () => JSON.stringify({
+            holidays: [
+              { text: 'Rare Disease Day', pages: [{ wikibase_item: 'Q4898140' }] }
+            ]
+          })
+        };
+      }
+
+      if (u.includes('wikidata.org/w/api.php') && u.includes('wbgetentities')) {
+        return {
+          ok: true,
+          text: async () => JSON.stringify({
+            entities: {
+              Q4898140: {
+                labels: { en: { value: 'Rare Disease Day' }, de: { value: 'Tag der seltenen Krankheiten' } },
+                sitelinks: { dewiki: { title: 'Tag der seltenen Krankheiten' } }
+              }
+            }
+          })
+        };
+      }
+
       return {
         ok: true,
         text: async () => 'International Day February 28\nWorld Day\nTag des Tests'
@@ -74,40 +99,40 @@ describe('runLookup', () => {
   });
 
   it('returns selected string sources only when requested', async () => {
-    const out = await runLookup({ date: '2026-02-28', sources: ['un', 'who_days'], state: 'BY' });
+    const out = await runLookup({ date: '2026-02-28', sources: ['un_scrape', 'who_days_scrape'], state: 'BY' });
     expect(out.results.length).toBe(2);
-    expect(out.results.map(r => r.source)).toEqual(['un', 'who_days']);
+    expect(out.results.map(r => r.source)).toEqual(['un_scrape', 'who_days_scrape']);
   });
 
   it('returns selected DE holiday and nameday sources in results', async () => {
-    const out = await runLookup({ date: '2026-02-28', sources: ['de_holidays', 'de_namedays'], state: 'BY' });
+    const out = await runLookup({ date: '2026-02-28', sources: ['de_holidays_api', 'de_namedays_api'], state: 'BY' });
     const byId = Object.fromEntries(out.results.map(r => [r.source, r]));
-    expect(byId.de_holidays.findings[0]).toContain('Test Holiday');
-    expect(byId.de_namedays.findings[0]).toContain('Roman');
+    expect(byId.de_holidays_api.findings[0]).toContain('Test Holiday');
+    expect(byId.de_namedays_api.findings[0]).toContain('Roman');
   });
 
   it('extracts exact UN day mapping', async () => {
-    const out = await runLookup({ date: '2026-03-03', sources: ['un'], state: 'BY' });
+    const out = await runLookup({ date: '2026-03-03', sources: ['un_scrape'], state: 'BY' });
     expect(out.results[0].findings[0]).toContain('World Wildlife Day');
   });
 
   it('extracts curiosity entries from monthly day section', async () => {
-    const out = await runLookup({ date: '2026-03-03', sources: ['curiosity_days'], state: 'BY' });
+    const out = await runLookup({ date: '2026-03-03', sources: ['curiosity_days_scrape'], state: 'BY' });
     expect(out.results[0].findings).toEqual(['Curiosity One', 'Curiosity Two']);
   });
 
   it('falls back to fixed UNESCO day mapping for 4 March', async () => {
-    const out = await runLookup({ date: '2026-03-04', sources: ['unesco_days'], state: 'BY' });
+    const out = await runLookup({ date: '2026-03-04', sources: ['unesco_days_scrape'], state: 'BY' });
     expect(out.results[0].findings[0]).toContain('World Engineering Day for Sustainable Development');
   });
 
   it('extracts EU day from CoE page for 17 May', async () => {
-    const out = await runLookup({ date: '2026-05-17', sources: ['eu_days'], state: 'BY' });
+    const out = await runLookup({ date: '2026-05-17', sources: ['eu_days_scrape'], state: 'BY' });
     expect(out.results[0].findings[0]).toContain('International Day against Homophobia');
   });
 
   it('uses the new WHO campaigns endpoint (regression guard)', async () => {
-    await runLookup({ date: '2026-05-17', sources: ['who_days'], state: 'BY' });
+    await runLookup({ date: '2026-05-17', sources: ['who_days_scrape'], state: 'BY' });
     const calledUrls = global.fetch.mock.calls.map(c => String(c[0]));
     // cache may satisfy the call with zero fetches; if a WHO call occurs, it must use /campaigns and never old path
     const whoCalls = calledUrls.filter(u => u.includes('who.int'));
@@ -118,10 +143,16 @@ describe('runLookup', () => {
   });
 
   it('filters obvious timeanddate promo noise', async () => {
-    const out = await runLookup({ date: '2026-03-03', sources: ['timeanddate'], state: 'BY' });
+    const out = await runLookup({ date: '2026-03-03', sources: ['timeanddate_scrape'], state: 'BY' });
     const findings = out.results[0].findings.join(' | ');
     expect(findings).not.toMatch(/Sky Guide/i);
     expect(findings).toMatch(/International Potato Day|holiday overview|No exact aggregator date match found/i);
+  });
+
+  it('returns wikidata API findings', async () => {
+    const out = await runLookup({ date: '2026-02-28', sources: ['wikidata_days_api'], state: 'BY' });
+    expect(out.results[0].source).toBe('wikidata_days_api');
+    expect(out.results[0].findings[0]).toMatch(/seltenen Krankheiten|Rare Disease Day/);
   });
 
   it('retries transient 429 for UN source and recovers', async () => {
@@ -136,7 +167,7 @@ describe('runLookup', () => {
       return { ok: true, text: async () => '' };
     });
 
-    const out = await runLookup({ date: '2026-03-03', sources: ['un'], state: 'BY' });
+    const out = await runLookup({ date: '2026-03-03', sources: ['un_scrape'], state: 'BY' });
     expect(out.results[0].findings[0]).toContain('World Wildlife Day');
     expect(calls.n).toBeGreaterThanOrEqual(3);
   });
